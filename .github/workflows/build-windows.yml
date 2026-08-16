@@ -2,13 +2,13 @@ name: Build Windows Installer
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
+    tags: ["v*"]
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build Brahma Echo EXE
     runs-on: windows-latest
 
     steps:
@@ -17,21 +17,119 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          node-version: 20
-          cache: 'npm'
+          python-version: '3.11'
+
+      - name: Cache pip downloads
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install pyinstaller
 
-      - name: Build Electron App Installer
-        run: npm run build
+      - name: Install Playwright browsers
+        run: python -m playwright install chromium
+        continue-on-error: true
 
-      - name: Upload Installer Artifact
+      - name: Build EXE with PyInstaller
+        run: pyinstaller brahma-echo.spec --noconfirm --clean
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: List build output
+        run: |
+          echo "=== Build Output ==="
+          dir dist\BrahmaEcho\ /s /b | findstr /v "__pycache__"
+          echo ""
+          echo "=== EXE Info ==="
+          dir dist\BrahmaEcho\BrahmaEcho.exe
+
+      - name: Create portable ZIP
+        run: |
+          echo "Creating portable ZIP..."
+          powershell Compress-Archive -Path dist\BrahmaEcho\* -DestinationPath dist\BrahmaEcho-Portable.zip -Force
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Brahma-Echo-Setup-x64
-          path: dist/*.exe
+          name: BrahmaEcho-Build
+          path: dist/BrahmaEcho/
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrahmaEcho-Portable
+          path: dist/BrahmaEcho-Portable.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download portable ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: BrahmaEcho-Portable
+          path: release-assets
+
+      - name: List release assets
+        run: ls -la release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/BrahmaEcho-Portable.zip
+          name: Brahma Echo ${{ github.ref_name }}
+          body: |
+            ## Brahma Echo ${{ github.ref_name }}
+
+            Open-source Windows desktop AI assistant with voice-first automation.
+
+            ### Download
+
+            * BrahmaEcho-Portable.zip — Extract and run BrahmaEcho.exe (no install needed)
+
+            ### System Requirements
+
+            * Windows 10 or Windows 11 (x64)
+            * Internet connection for AI providers
+            * Microphone for voice commands
+
+            ### Quick Start
+
+            1. Download and extract BrahmaEcho-Portable.zip
+            2. Run BrahmaEcho.exe
+            3. Follow the onboarding setup
+
+            ### Features
+
+            * Voice-first command and desktop automation
+            * Gemini AI with OpenRouter fallback
+            * Screen-aware context and automation
+            * Document, presentation, and report generation
+            * Discord bot and Brahma Connect remote control
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
