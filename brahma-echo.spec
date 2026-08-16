@@ -62,7 +62,8 @@ for pkg in ['sounddevice', 'pyaudio', 'comtypes', 'pycaw.pycaw', 'psutil',
             'proto_plus', 'tenacity', 'multidict', 'yarl',
             'propcache', 'aiohappyeyeballs', 'aiosignal',
             'frozenlist', 'attrs', 'python_multipart',
-            'pydantic_core', 'annotated_types']:
+            'pydantic_core', 'annotated_types',
+            'pyparsing', 'httplib2', 'google.generativeai', 'google.ai']:
     try:
         hiddenimports += collect_submodules(pkg)
     except Exception:
@@ -154,7 +155,7 @@ datas += [
 
 # Exclude unnecessary modules to reduce size
 excludes = [
-    'tkinter', 'test', 'unittest', 'pydoc', 'doctest',
+    'tkinter', 'test',
     'distutils', 'lib2to3', 'turtle', 'turtledemo',
     'http.server', 'pdb', 'profile', 'pstats',
     'numpy.f2py.tests', 'numpy.tests', 'numpy.distutils',
