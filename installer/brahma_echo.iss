@@ -38,7 +38,7 @@ SetupIconFile=..\assets\Brahma_Lite_Logo.ico
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional shortcuts:"; Flags: checked
+Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional shortcuts:"
 Name: "startupicon"; Description: "Start with &Windows"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
