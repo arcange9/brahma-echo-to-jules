@@ -78,6 +78,16 @@ hiddenimports += [
     'pywinauto.controls', 'pywinauto.findwindows',
 ]
 
+# --- Stdlib modules missed by PyInstaller analysis ---
+hiddenimports += [
+    'unittest', 'unittest.mock', 'unittest.case',
+    'unittest.loader', 'unittest.runner', 'unittest.suite',
+    'unittest.result', 'unittest.signals', 'unittest.util',
+    'unittest.async_case',
+    'html', 'html.parser', 'html.entities',
+    'http', 'http.client', 'http.server',
+    'email', 'email.mime', 'email.parser', 'email.utils',
+]
 # --- Audio/MediaPipe model data ---
 datas += [
     ('config/models', 'config/models'),

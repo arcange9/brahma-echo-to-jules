@@ -1,6 +1,6 @@
 # actions/send_message.py
-# Universal messaging — WhatsApp & Instagram
-# Uses lightweight pyautogui browser automation.
+# Universal messaging — WhatsApp Web (QR pairing), WhatsApp Desktop, Instagram, Telegram
+# Uses Playwright for WhatsApp Web, pyautogui for desktop app automation.
 
 from __future__ import annotations
 
@@ -41,10 +41,11 @@ def _open_app(app_name: str) -> bool:
         return False
 
 
-def _send_whatsapp(receiver: str, message: str) -> str:
+def _send_whatsapp_desktop(receiver: str, message: str) -> str:
+    """Send via WhatsApp Desktop app (fallback)."""
     try:
         if not _open_app("WhatsApp"):
-            return "Could not open WhatsApp."
+            return "Could not open WhatsApp Desktop."
 
         time.sleep(1.5)
         pyautogui.hotkey("ctrl", "f")
@@ -57,9 +58,30 @@ def _send_whatsapp(receiver: str, message: str) -> str:
         pyautogui.write(message, interval=0.03)
         time.sleep(0.2)
         pyautogui.press("enter")
-        return f"Message sent to {receiver} via WhatsApp."
+        return f"Message sent to {receiver} via WhatsApp Desktop."
     except Exception as e:
-        return f"WhatsApp error: {e}"
+        return f"WhatsApp Desktop error: {e}"
+
+
+def _send_whatsapp(receiver: str, message: str) -> str:
+    """
+    Send a WhatsApp message.
+    Tries WhatsApp Web (QR-paired Playwright session) first,
+    falls back to WhatsApp Desktop automation.
+    """
+    # Try WhatsApp Web first
+    try:
+        from actions.whatsapp_web import is_whatsapp_web_connected, send_whatsapp_web
+        if is_whatsapp_web_connected():
+            result = send_whatsapp_web(receiver, message)
+            if "error" not in result.lower():
+                return result
+            print(f"[SendMessage] WhatsApp Web failed, falling back to desktop: {result}")
+    except Exception as e:
+        print(f"[SendMessage] WhatsApp Web not available: {e}")
+
+    # Fallback to desktop automation
+    return _send_whatsapp_desktop(receiver, message)
 
 
 def _open_instagram_home() -> None:
