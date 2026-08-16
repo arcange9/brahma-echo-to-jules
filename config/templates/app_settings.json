@@ -1,0 +1,8 @@
+{
+  "wake_word": "brahma echo",
+  "voice_enabled": true,
+  "auto_start": false,
+  "minimize_to_tray": true,
+  "theme": "dark",
+  "language": "en"
+}
