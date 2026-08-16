@@ -1,90 +1,170 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for Brahma Echo
-# Builds a single-folder distribution with all dependencies
+# Brahma Echo — PyInstaller Specification File
+# Builds a Windows x64 onedir distribution with all dependencies bundled
 
 import os
 import sys
-from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules, collect_dynamic_libs
 
 block_cipher = None
 
-# Collect all data and binaries for heavy packages
+# === Data files and binaries ===
 datas = []
 binaries = []
 hiddenimports = []
 
-# PyQt6
+# --- PyQt6 ---
 tmp_d, tmp_b, tmp_h = collect_all('PyQt6')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
-# opencv
+# --- OpenCV ---
 tmp_d, tmp_b, tmp_h = collect_all('cv2')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
-# mediapipe
+# --- MediaPipe ---
 tmp_d, tmp_b, tmp_h = collect_all('mediapipe')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
-# google-genai / google-generativeai
+# --- Google GenAI ---
 tmp_d, tmp_b, tmp_h = collect_all('google.genai')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 tmp_d, tmp_b, tmp_h = collect_all('google.generativeai')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
-# Other packages that need special handling
-for pkg in ['sounddevice', 'pyaudio', 'comtypes', 'pycaw', 'psutil', 
-            'send2trash', 'openpyxl', 'pptx', 'docx', 'reportlab',
-            'edge_tts', 'qrcode', 'beautifulsoup4', 'bs4', 'duckduckgo_search',
-            'youtube_transcript_api', 'pyperclip', 'pygetwindow', 'pywinauto',
-            'pyautogui', 'cryptography', 'fastapi', 'uvicorn',
-            'python_kasa', 'win10toast', 'mss', 'numpy', 'PIL']:
+# --- Other heavy packages that need collect_all ---
+for pkg in ['numpy', 'PIL', 'matplotlib', 'reportlab', 'openpyxl',
+            'pptx', 'docx', 'cryptography', 'fastapi', 'uvicorn',
+            'edge_tts', 'qrcode', 'pydantic', 'starlette',
+            'google.api_core', 'google.auth', 'google.protobuf',
+            'grpc', 'discord', 'aiohttp']:
     try:
         tmp_d, tmp_b, tmp_h = collect_all(pkg)
         datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
     except Exception:
-        try:
-            hiddenimports += collect_submodules(pkg)
-        except Exception:
-            pass
+        pass
 
-# Add our own data files
+# --- Packages needing hidden imports only ---
+for pkg in ['sounddevice', 'pyaudio', 'comtypes', 'pycaw.pycaw', 'psutil',
+            'send2trash', 'pyperclip', 'pygetwindow', 'pywinauto',
+            'pyautogui', 'pytweening', 'pyscreeze', 'pymsgbox', 'pyrect',
+            'mss', 'mss.tools', 'beautifulsoup4', 'bs4',
+            'duckduckgo_search', 'youtube_transcript_api',
+            'win10toast', 'python_kasa', 'kasa',
+            'anyio', 'h11', 'httpcore', 'httpx', 'sniffio',
+            'watchfiles', 'websockets', 'pyee',
+            'typing_inspection', 'tabulate', 'tqdm',
+            'charset_normalizer', 'certifi', 'idna', 'urllib3',
+            'requests', 'flatbuffers', 'absl',
+            'contourpy', 'fonttools', 'cycler', 'kiwisolver',
+            'lxml', 'et_xmlfile', 'defusedxml', 'lxml.etree',
+            'click', 'colorama', 'distro', 'greenlet',
+            'pyasn1', 'pyasn1_modules', ' mashumaro',
+            'proto_plus', 'tenacity', 'multidict', 'yarl',
+            'propcache', 'aiohappyeyeballs', 'aiosignal',
+            'frozenlist', 'attrs', 'python_multipart',
+            'pydantic_core', 'annotated_types']:
+    try:
+        hiddenimports += collect_submodules(pkg)
+    except Exception:
+        pass
+    hiddenimports.append(pkg)
+
+# --- Windows-specific ---
+hiddenimports += [
+    'winreg', 'ctypes.wintypes', 'ctypes.macholib',
+    'comtypes', 'comtypes.client', 'comtypes.gen',
+    'pycaw.pycaw', 'pycaw',
+    'pywinauto', 'pywinauto.application', 'pywinauto.findwindows',
+    'pywinauto.controls', 'pywinauto.findwindows',
+]
+
+# --- Audio/MediaPipe model data ---
+datas += [
+    ('config/models', 'config/models'),
+    ('config/templates', 'config/templates'),
+    ('config/brahma_connect.json', 'config'),
+    ('config/brahma_connect', 'config/brahma_connect'),
+    ('config/create_desktop_shortcut.ps1', 'config'),
+]
+
+# --- Assets ---
 datas += [
     ('assets', 'assets'),
-    ('config', 'config'),
+]
+
+# --- Core (prompt.txt etc) ---
+datas += [
     ('core', 'core'),
+]
+
+# --- Memory module ---
+datas += [
     ('memory', 'memory'),
+]
+
+# --- Smart home module ---
+datas += [
     ('smart_home', 'smart_home'),
-    ('plugins', 'plugins'),
+]
+
+# --- Brahma connect ---
+datas += [
     ('brahma_connect', 'brahma_connect'),
 ]
 
-# Hidden imports for dynamic imports in the code
-hiddenimports += [
-    'discord',
-    'httpx',
-    'httpcore',
-    'anyio',
-    'h11',
-    'sniffio',
-    'certifi',
-    'charset_normalizer',
-    'idna',
-    'requests',
-    'urllib3',
+# --- Dashboard ---
+datas += [
+    ('dashboard', 'dashboard'),
+]
+
+# --- Plugin system ---
+datas += [
+    ('plugins', 'plugins'),
+]
+
+# --- Actions (all submodules) ---
+datas += [
+    ('actions', 'actions'),
+]
+
+# --- Agent modules ---
+datas += [
+    ('agent', 'agent'),
+]
+
+# --- Config package ---
+datas += [
+    ('config/__init__.py', 'config'),
+]
+
+# --- Auth package ---
+datas += [
+    ('auth', 'auth'),
+]
+
+# Exclude unnecessary modules to reduce size
+excludes = [
+    'tkinter', 'test', 'unittest', 'pydoc', 'doctest',
+    'distutils', 'lib2to3', 'turtle', 'turtledemo',
+    'http.server', 'pdb', 'profile', 'pstats',
+    'numpy.f2py.tests', 'numpy.tests', 'numpy.distutils',
+    'matplotlib.tests', 'matplotlib.testing',
+    'pytest', '_pytest',
+    'google.genai.tests',
 ]
 
 a = Analysis(
     ['main.py'],
-    pathex=[],
+    pathex=[os.path.abspath('.')],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'test', 'unittest', 'pydoc'],
+    excludes=excludes,
     noarchive=False,
-    optimize=0,
+    optimize=1,
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
@@ -99,6 +179,8 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
