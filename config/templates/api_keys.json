@@ -1,0 +1,6 @@
+{
+  "gemini_api_key": "",
+  "openrouter_api_key": "",
+  "openrouter_model": "anthropic/claude-3.5-sonnet",
+  "os_system": "windows"
+}
