@@ -20,7 +20,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\Brahma Echo
 DefaultGroupName=Brahma Echo
 AllowNoIcons=yes
-OutputDir=installer\output
+OutputDir=output
 OutputBaseFilename=Brahma-Echo-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -32,7 +32,7 @@ DisableProgramGroupPage=no
 WizardStyle=modern
 UninstallDisplayIcon={app}\BrahmaEcho.exe
 UninstallDisplayName=Brahma Echo
-SetupIconFile=assets\Brahma_Lite_Logo.ico
+SetupIconFile=..\assets\Brahma_Lite_Logo.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -43,20 +43,20 @@ Name: "startupicon"; Description: "Start with &Windows"; GroupDescription: "Addi
 
 [Files]
 ; Main application directory (PyInstaller onedir output)
-Source: "dist\BrahmaEcho\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\BrahmaEcho\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Config templates (read-only, used to initialize user config on first run)
-Source: "config\templates\*"; DestDir: "{app}\config\templates"; Flags: ignoreversion
+Source: "..\config\templates\*"; DestDir: "{app}\config\templates"; Flags: ignoreversion
 
 ; Bundled read-only config
-Source: "config\brahma_connect.json"; DestDir: "{app}\config"; Flags: ignoreversion
-Source: "config\models\*"; DestDir: "{app}\config\models"; Flags: ignoreversion recursesubdirs
+Source: "..\config\brahma_connect.json"; DestDir: "{app}\config"; Flags: ignoreversion
+Source: "..\config\models\*"; DestDir: "{app}\config\models"; Flags: ignoreversion recursesubdirs
 
 ; Assets
-Source: "assets\*"; DestDir: "{app}\assets"; Flags: ignoreversion recursesubdirs
+Source: "..\assets\*"; DestDir: "{app}\assets"; Flags: ignoreversion recursesubdirs
 
 ; Core files
-Source: "core\*"; DestDir: "{app}\core"; Flags: ignoreversion recursesubdirs
+Source: "..\core\*"; DestDir: "{app}\core"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\Brahma Echo"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"
