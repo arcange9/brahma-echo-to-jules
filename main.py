@@ -18,6 +18,22 @@ try:
 except Exception:
     pass
 
+# Install crash handler for debug logging
+try:
+    from brahma_logger import install_crash_handler, setup_logging, is_debug_mode
+    install_crash_handler()
+    _logger = setup_logging()
+    _logger.info("Brahma Echo starting up...")
+except ImportError:
+    pass
+
+# First-run initialization (creates user-writable config)
+try:
+    from brahma_init import initialize_user_data
+    initialize_user_data()
+except ImportError:
+    pass
+
 import sounddevice as sd
 from google import genai
 from google.genai import types
@@ -76,13 +92,34 @@ except Exception:
 
 def get_base_dir():
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
+        # In frozen mode, resources are in _MEIPASS
+        return Path(sys._MEIPASS) if hasattr(sys, "_MEIPASS") else Path(sys.executable).parent
     return Path(__file__).resolve().parent
 
 
 BASE_DIR        = get_base_dir()
-API_CONFIG_PATH = BASE_DIR / "config" / "api_keys.json"
-PROMPT_PATH     = BASE_DIR / "core" / "prompt.txt"
+# In frozen mode, use writable per-user config; in dev, use project config
+if getattr(sys, "frozen", False):
+    _USER_DATA = Path(os.environ.get("LOCALAPPDATA", str(Path(sys.executable).parent))) / "Brahma Echo"
+    _USER_DATA.mkdir(parents=True, exist_ok=True)
+    _USER_CONFIG = _USER_DATA / "config"
+    _USER_CONFIG.mkdir(parents=True, exist_ok=True)
+    API_CONFIG_PATH = _USER_CONFIG / "api_keys.json"
+    # Prompt is read-only, stays in bundle
+    PROMPT_PATH = Path(sys._MEIPASS) / "core" / "prompt.txt" if hasattr(sys, "_MEIPASS") else BASE_DIR / "core" / "prompt.txt"
+    # Copy template config if it doesn't exist
+    if not API_CONFIG_PATH.exists():
+        import shutil
+        _template = BASE_DIR / "config" / "templates" / "api_keys.json"
+        if _template.exists():
+            shutil.copy2(_template, API_CONFIG_PATH)
+        else:
+            import json as _json
+            with open(API_CONFIG_PATH, "w") as _f:
+                _json.dump({"gemini_api_key": "", "openrouter_api_key": "", "os_system": "windows"}, _f, indent=2)
+else:
+    API_CONFIG_PATH = BASE_DIR / "config" / "api_keys.json"
+    PROMPT_PATH     = BASE_DIR / "core" / "prompt.txt"
 STARTUP_LOG     = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "Brahma Echo" / "startup.log"
 LIVE_MODEL          = "models/gemini-2.5-flash-native-audio-preview-12-2025"
 CHANNELS            = 1
