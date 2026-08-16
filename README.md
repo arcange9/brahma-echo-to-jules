@@ -202,3 +202,125 @@ This project is published under a custom source-available license. See `LICENSE`
 - Suryaansh Tiwari
 
 > Preserve attribution and keep credentials secure when building on top of Brahma Echo.
+
+
+---
+
+## Windows Installer
+
+Brahma Echo can be built into a Windows x64 executable and installer using GitHub Actions.
+
+### Downloads
+
+Download the latest release from the [Releases page](https://github.com/arcange9/brahma-echo-to-jules/releases):
+
+- `Brahma-Echo-Setup.exe` — Full installer (recommended)
+- `BrahmaEcho-Portable.zip` — Portable, no install needed
+
+### System Requirements
+
+- Windows 10 or Windows 11 (x64)
+- Internet connection for AI providers
+- Microphone for voice commands (optional but recommended)
+
+### How the Build Works
+
+The GitHub Actions workflow (`.github/workflows/build-windows.yml`) runs on `windows-latest` and:
+
+1. Sets up Python 3.11
+2. Installs all dependencies from `requirements.txt`
+3. Runs an import audit and tests
+4. Builds the executable with PyInstaller using `brahma-echo.spec`
+5. Runs a smoke test to verify the executable starts
+6. Builds the installer with Inno Setup (`installer/brahma_echo.iss`)
+7. Uploads the installer and portable ZIP as artifacts
+8. On version tags (`v*`), creates a GitHub Release with download links
+
+### Installation
+
+1. Download `Brahma-Echo-Setup.exe` from the Releases page
+2. Run the installer
+3. Follow the setup wizard (choose install location, shortcuts)
+4. Launch Brahma Echo from the Start Menu or desktop shortcut
+
+### First Run
+
+On first launch, Brahma Echo automatically creates configuration files in:
+```
+%LOCALAPPDATA%\Brahma Echo\config\
+```
+
+Open the settings to configure:
+- **Gemini API Key** (required) — Get one at [Google AI Studio](https://aistudio.google.com/apikey)
+- **OpenRouter API Key** (optional) — Get one at [OpenRouter](https://openrouter.ai/keys)
+
+### Playwright
+
+Playwright Chromium browser is installed automatically when first needed. If you prefer to install it manually:
+```
+BrahmaEcho.exe --install-playwright
+```
+
+### Uninstallation
+
+Uninstall via:
+- Settings > Apps > Brahma Echo > Uninstall
+- Or the uninstaller in the Start Menu > Brahma Echo > Uninstall Brahma Echo
+
+Uninstalling removes the application but preserves your configuration and memory data in `%LOCALAPPDATA%\Brahma Echo\`.
+
+### Troubleshooting Startup Failures
+
+If Brahma Echo fails to start:
+
+1. **Check the crash log:**
+   ```
+   %LOCALAPPDATA%\Brahma Echo\logs\crash_log.txt
+   ```
+
+2. **Check the application log:**
+   ```
+   %LOCALAPPDATA%\Brahma Echo\logs\brahma_echo.log
+   ```
+
+3. **Run in debug mode:**
+   ```
+   BrahmaEcho.exe --debug
+   ```
+
+4. **Verify API keys** are configured in `%LOCALAPPDATA%\Brahma Echo\config\api_keys.json`
+
+5. **Check Playwright** browsers are installed if you use browser automation features
+
+### Configuration Files
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `api_keys.json` | `%LOCALAPPDATA%\Brahma Echo\config\` | Gemini and OpenRouter API keys |
+| `app_settings.json` | `%LOCALAPPDATA%\Brahma Echo\config\` | App preferences and settings |
+| `discord_bot.json` | `%LOCALAPPDATA%\Brahma Echo\config\` | Discord bot configuration |
+| `brahma_connect.json` | `%LOCALAPPDATA%\Brahma Echo\config\` | Brahma Connect settings |
+
+### Building from Source
+
+To build Brahma Echo locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/arcange9/brahma-echo-to-jules.git
+cd brahma-echo-to-jules
+
+# Install dependencies
+pip install -r requirements.txt
+pip install pyinstaller
+python -m playwright install chromium
+
+# Build the executable
+pyinstaller brahma-echo.spec --noconfirm --clean
+
+# Build the installer (requires Inno Setup)
+# Install Inno Setup from https://jrsoftware.org/isdl.php
+ISCC installer\brahma_echo.iss
+```
+
+The executable will be in `dist/BrahmaEcho/` and the installer in `installer/output/`.
