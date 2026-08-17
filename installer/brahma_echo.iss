@@ -41,7 +41,6 @@ WizardStyle=modern
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName=Brahma Echo
 SetupIconFile=..\assets\Brahma_Lite_Logo.ico
-VersionInfoName=Brahma Echo
 VersionInfoProductName=Brahma Echo
 VersionInfoCompany=Brahma Echo
 VersionInfoDescription=Brahma Echo - Windows Desktop AI Assistant
