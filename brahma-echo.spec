@@ -47,7 +47,8 @@ for pkg in ['numpy', 'PIL', 'Pillow', 'matplotlib', 'reportlab', 'openpyxl',
             'grpc', 'discord', 'aiohttp', 'httpx', 'httpcore',
             'anyio', 'h11', 'sniffio', 'watchfiles', 'websockets',
             'python_multipart', 'multidict', 'yarl', 'aiosignal',
-            'frozenlist', 'attrs', 'certifi', 'charset_normalizer']:
+            'frozenlist', 'attrs', 'certifi', 'charset_normalizer',
+            'pandas', 'PyPDF2', 'pdfplumber', 'pydub', 'zeroconf']:
     try:
         tmp_d, tmp_b, tmp_h = collect_all(pkg)
         datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
@@ -94,7 +95,16 @@ for pkg in ['sounddevice', 'pyaudio', 'comtypes', 'comtypes.gen', 'pycaw.pycaw',
             'scipy', 'scipy.special', 'scipy._lib',
             'screeninfo', 'pywin32', 'win32com', 'win32com.client',
             'pythoncom', 'servicemanager',
-            'filelock', 'tqdm', 'colorama']:
+            'filelock', 'tqdm', 'colorama',
+            'ddgs', 'zeroconf', 'zeroconf._utils',
+            'PyPDF2', 'pdfplumber', 'pandas', 'pydub',
+            'pyparsing.testing', 'pyparsing.common', 'pyparsing.core',
+            'pyparsing.exceptions', 'pyparsing.actions', 'pyparsing.results',
+            'pyparsing.helpers', 'pyparsing.util',
+            'webbrowser', 'tarfile', 'zipfile', 'gzip',
+            'doctest', 'argparse', 'configparser',
+            'ftplib', 'smtplib', 'imaplib',
+            'gc', 'dis', 'inspect', 'ast']:
     try:
         hiddenimports += collect_submodules(pkg)
     except Exception:
@@ -119,7 +129,12 @@ hiddenimports += [
     'unittest', 'unittest.mock', 'unittest.case',
     'unittest.loader', 'unittest.runner', 'unittest.suite',
     'unittest.result', 'unittest.signals', 'unittest.util',
-    'unittest.async_case',
+    'unittest.async_case', 'unittest._log',
+    'doctest',
+    'pyparsing', 'pyparsing.testing', 'pyparsing.core',
+    'pyparsing.exceptions', 'pyparsing.actions', 'pyparsing.results',
+    'pyparsing.helpers', 'pyparsing.util', 'pyparsing.common',
+    'httplib2', 'httplib2.auth', 'httplib2.iri2uri',
     'html', 'html.parser', 'html.entities',
     'http', 'http.client', 'http.server',
     'email', 'email.mime', 'email.parser', 'email.utils',
@@ -205,7 +220,7 @@ for py_file in [
 
 # Exclude unnecessary modules to reduce size
 excludes = [
-    'tkinter', 'test', 'tests',
+    'tkinter',
     'distutils', 'lib2to3', 'turtle', 'turtledemo',
     'pdb', 'profile', 'pstats',
     'numpy.f2py.tests', 'numpy.tests', 'numpy.distutils',
@@ -215,7 +230,7 @@ excludes = [
     'IPython', 'jupyter', 'notebook',
     'sphinx', 'docutils',
     'setuptools', 'pip', 'wheel',
-    'pydoc', 'doctest',
+    'pydoc',
     '2to3', 'venv', 'ensurepip',
 ]
 
