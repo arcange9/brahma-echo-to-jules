@@ -188,7 +188,7 @@ jobs:
           retention-days: 30
         if: always()
 
-      - name: Create GitHub Release on tag
+      - name: Create or update GitHub Release on tag
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
@@ -196,11 +196,19 @@ jobs:
         run: |
           Write-Host "=== Creating GitHub Release ==="
           $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
-          gh release create $tag `
-            --title "Brahma Echo $tag" `
-            --notes "Download Brahma-Echo-Setup.exe to install Brahma Echo on Windows 10/11. See the README for installation instructions." `
-            installer/output/Brahma-Echo-Setup.exe `
-            --repo $env:GITHUB_REPOSITORY
+          # Try to create the release; if it already exists, just upload the asset
+          $releaseExists = gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Creating new release for $tag"
+            gh release create $tag `
+              --title "Brahma Echo $tag" `
+              --notes "Download Brahma-Echo-Setup.exe to install Brahma Echo on Windows 10/11. See the README for installation instructions." `
+              --repo $env:GITHUB_REPOSITORY
+          } else {
+            Write-Host "Release $tag already exists, uploading asset"
+          }
+          # Upload the installer (use --clobber to overwrite if it exists)
+          gh release upload $tag installer/output/Brahma-Echo-Setup.exe --clobber --repo $env:GITHUB_REPOSITORY
 
       - name: Clean up build intermediates
         shell: pwsh
