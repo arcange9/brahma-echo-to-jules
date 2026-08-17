@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import re
 import sqlite3
 import threading
@@ -12,6 +13,11 @@ from typing import Any
 
 
 def _base_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent
 
 

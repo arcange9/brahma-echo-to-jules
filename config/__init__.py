@@ -21,7 +21,21 @@ def get_config() -> dict:
         with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        # First run — create from template
+        # First run — try to copy from template
+        try:
+            _template = None
+            if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+                _template = Path(sys._MEIPASS) / "config" / "templates" / "api_keys.json"
+            else:
+                _template = Path(__file__).parent / "templates" / "api_keys.json"
+            if _template and _template.exists():
+                import shutil
+                _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(_template, _CONFIG_PATH)
+                with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
         return {"gemini_api_key": "", "openrouter_api_key": "", "os_system": "windows"}
     except Exception:
         return {"gemini_api_key": "", "openrouter_api_key": "", "os_system": "windows"}

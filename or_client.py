@@ -20,9 +20,27 @@ def _get_base_dir() -> Path:
 BASE_DIR     = _get_base_dir()
 API_KEY_PATH = BASE_DIR / "config" / "api_keys.json"
 
+
+def _resolve_api_key_path() -> Path:
+    """In frozen mode, use the per-user writable config dir."""
+    if getattr(sys, "frozen", False):
+        try:
+            from brahma_paths import get_config_path
+            return get_config_path("api_keys.json")
+        except Exception:
+            local_app_data = os.environ.get("LOCALAPPDATA", "")
+            if local_app_data:
+                return Path(local_app_data) / "Brahma Echo" / "config" / "api_keys.json"
+    return API_KEY_PATH
+
+
+# Use the resolved path
+API_KEY_PATH = _resolve_api_key_path()
+
 def _load_api_key() -> str:
     try:
-        with open(API_KEY_PATH, "r", encoding="utf-8") as f:
+        key_path = _resolve_api_key_path()
+        with open(key_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         key = data.get("openrouter_api_key", "").strip()
         return key

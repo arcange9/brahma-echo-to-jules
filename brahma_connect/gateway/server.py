@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import sys
 import socket
 import threading
 from dataclasses import dataclass, field
@@ -23,10 +25,20 @@ from .websocket import ConnectionHub
 
 
 def _default_config_path(base_dir: Path) -> Path:
+    """Resolve config path - uses writable user data dir in frozen mode."""
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo" / "config" / "brahma_connect.json"
     return Path(base_dir) / "config" / "brahma_connect.json"
 
 
 def _default_registry_path(base_dir: Path) -> Path:
+    """Resolve registry path - uses writable user data dir in frozen mode."""
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo" / "config" / "brahma_connect" / "devices.json"
     return Path(base_dir) / "config" / "brahma_connect" / "devices.json"
 
 

@@ -26,6 +26,11 @@ except Exception:  # pragma: no cover
 
 
 def _base_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 

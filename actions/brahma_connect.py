@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import os
 from pathlib import Path
 from typing import Any, Callable
 
@@ -11,7 +12,10 @@ from brahma_connect.service import get_service
 
 def _base_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 

@@ -36,7 +36,16 @@ try:
 except Exception:
     pass
 
-BASE_DIR    = Path(__file__).resolve().parent.parent
+def _get_base_dir() -> Path:
+    """Resolve base dir compatible with both dev and PyInstaller frozen modes."""
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent.parent
+
+BASE_DIR    = _get_base_dir()
 
 def _get_static_dir() -> Path:
     if getattr(sys, "frozen", False):
@@ -55,6 +64,13 @@ MAX_UPLOAD_MB = 500
 
 def _make_uploads_dir() -> Path:
     """Return (and create) the cross-platform uploads folder."""
+    try:
+        from brahma_paths import get_user_data_dir
+        user_uploads = get_user_data_dir() / "uploads"
+        user_uploads.mkdir(parents=True, exist_ok=True)
+        return user_uploads
+    except Exception:
+        pass
     for candidate in [
         Path.home() / "Downloads" / "Brahma Uploads",
         Path.home() / "Documents" / "Brahma Uploads",
@@ -82,7 +98,9 @@ def _quiet_run(*args, **kwargs):
 def _get_gemini_key() -> str | None:
     try:
         import json as _json
-        with open(BASE_DIR / "config" / "api_keys.json", "r", encoding="utf-8") as f:
+        from brahma_paths import get_config_path
+        key_path = get_config_path("api_keys.json")
+        with open(key_path, "r", encoding="utf-8") as f:
             return _json.load(f).get("gemini_api_key")
     except Exception:
         return None
@@ -444,7 +462,11 @@ def _read(name: str) -> str:
 
 def _ensure_ssl_certs() -> bool:
     """Create local self-signed certs when missing so phones can use HTTPS."""
-    certs = BASE_DIR / "config" / "certs"
+    try:
+        from brahma_paths import get_config_dir
+        certs = get_config_dir() / "certs"
+    except Exception:
+        certs = BASE_DIR / "config" / "certs"
     key_path = certs / "brahma.key"
     cert_path = certs / "brahma.crt"
     if key_path.exists() and cert_path.exists():

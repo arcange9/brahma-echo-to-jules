@@ -1,7 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
-# Brahma Echo — PyInstaller Specification File
-# Builds a Windows x64 onedir distribution with all dependencies bundled.
-# Output: dist/BrahmaEcho/BrahmaEcho.exe
+# Brahma Echo — PyInstaller Debug Specification File
+# Same as brahma-echo.spec but with console=True for debugging.
+# Produces: dist/BrahmaEchoDebug/BrahmaEchoDebug.exe
+#
+# This build shows a console window with logging output.
+# Use it when diagnosing crashes or startup failures.
 
 import os
 import sys
@@ -9,7 +12,6 @@ from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_sub
 
 block_cipher = None
 
-# === Data files and binaries ===
 datas = []
 binaries = []
 hiddenimports = []
@@ -18,7 +20,6 @@ hiddenimports = []
 tmp_d, tmp_b, tmp_h = collect_all('PyQt6')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
-# --- PyQt6 plugins (SVG, image formats, platform plugins) ---
 try:
     from PyInstaller.utils.hooks import qt6
     datas += qt6.get_qt_data_files()
@@ -29,7 +30,7 @@ except Exception:
 tmp_d, tmp_b, tmp_h = collect_all('cv2')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
-# --- MediaPipe (includes model data) ---
+# --- MediaPipe ---
 tmp_d, tmp_b, tmp_h = collect_all('mediapipe')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
@@ -39,7 +40,6 @@ datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 tmp_d, tmp_b, tmp_h = collect_all('google.generativeai')
 datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
 
-# --- Other heavy packages that need collect_all ---
 for pkg in ['numpy', 'PIL', 'Pillow', 'matplotlib', 'reportlab', 'openpyxl',
             'pptx', 'python-docx', 'docx', 'cryptography', 'fastapi', 'uvicorn',
             'edge_tts', 'qrcode', 'pydantic', 'pydantic_core', 'starlette',
@@ -54,7 +54,6 @@ for pkg in ['numpy', 'PIL', 'Pillow', 'matplotlib', 'reportlab', 'openpyxl',
     except Exception:
         pass
 
-# --- Playwright (bundle the package; browser binaries are handled post-install) ---
 try:
     tmp_d, tmp_b, tmp_h = collect_all('playwright')
     datas += tmp_d; binaries += tmp_b; hiddenimports += tmp_h
@@ -62,7 +61,6 @@ except Exception:
     pass
 hiddenimports += collect_submodules('playwright')
 
-# --- Packages needing hidden imports only ---
 for pkg in ['sounddevice', 'pyaudio', 'comtypes', 'comtypes.gen', 'pycaw.pycaw', 'pycaw',
             'psutil', 'send2trash', 'pyperclip', 'pygetwindow', 'pywinauto',
             'pyautogui', 'pytweening', 'pyscreeze', 'pymsgbox', 'pyrect',
@@ -102,7 +100,6 @@ for pkg in ['sounddevice', 'pyaudio', 'comtypes', 'comtypes.gen', 'pycaw.pycaw',
     if pkg not in hiddenimports:
         hiddenimports.append(pkg)
 
-# --- Windows-specific ---
 hiddenimports += [
     'winreg', 'ctypes.wintypes', 'ctypes.macholib',
     'comtypes', 'comtypes.client', 'comtypes.gen',
@@ -114,7 +111,6 @@ hiddenimports += [
     'win32api', 'win32con', 'win32gui', 'win32process',
 ]
 
-# --- Stdlib modules missed by PyInstaller analysis ---
 hiddenimports += [
     'unittest', 'unittest.mock', 'unittest.case',
     'unittest.loader', 'unittest.runner', 'unittest.suite',
@@ -129,81 +125,34 @@ hiddenimports += [
     'importlib', 'importlib.util', 'importlib.machinery',
 ]
 
-# --- Audio/MediaPipe model data ---
 datas += [
     ('config/models', 'config/models'),
     ('config/templates', 'config/templates'),
     ('config/brahma_connect.json', 'config'),
     ('config/brahma_connect', 'config/brahma_connect'),
     ('config/create_desktop_shortcut.ps1', 'config'),
-]
-
-# --- Assets ---
-datas += [
     ('assets', 'assets'),
-]
-
-# --- Core (prompt.txt etc) ---
-datas += [
     ('core', 'core'),
-]
-
-# --- Memory module ---
-datas += [
     ('memory', 'memory'),
-]
-
-# --- Smart home module (including providers) ---
-datas += [
     ('smart_home', 'smart_home'),
-]
-
-# --- Brahma connect ---
-datas += [
     ('brahma_connect', 'brahma_connect'),
-]
-
-# --- Dashboard (including static HTML/JS) ---
-datas += [
     ('dashboard', 'dashboard'),
-]
-
-# --- Plugin system ---
-datas += [
     ('plugins', 'plugins'),
-]
-
-# --- Actions (all submodules) ---
-datas += [
     ('actions', 'actions'),
-]
-
-# --- Agent modules ---
-datas += [
     ('agent', 'agent'),
-]
-
-# --- Config package ---
-datas += [
     ('config/__init__.py', 'config'),
-]
-
-# --- Auth package ---
-datas += [
     ('auth', 'auth'),
 ]
 
-# --- Include all root-level Python modules as data (for dynamic imports) ---
 for py_file in [
     'main.py', 'ui.py', 'or_client.py', 'plugin_manager.py',
     'brahma_logger.py', 'brahma_init.py', 'brahma_paths.py',
     'workspace_store.py', 'discord_bot.py', 'gesture_utils.py',
-    'smart_home_page_new.py', 'start_brahma.bat', 'start_brahma.vbs',
+    'smart_home_page_new.py',
 ]:
     if os.path.exists(py_file):
         datas.append((py_file, '.'))
 
-# Exclude unnecessary modules to reduce size
 excludes = [
     'tkinter', 'test', 'tests',
     'distutils', 'lib2to3', 'turtle', 'turtledemo',
@@ -240,7 +189,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='BrahmaEcho',
+    name='BrahmaEchoDebug',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -252,7 +201,7 @@ exe = EXE(
         'msvcp140.dll',
     ],
     runtime_tmpdir=None,
-    console=False,
+    console=True,  # Show console for debug output
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -267,8 +216,5 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     [],
-    name='BrahmaEcho',
+    name='BrahmaEchoDebug',
 )
-
-# --- Also produce a console debug version ---
-# (Created as a second pass with console=True when BRAHMA_DEBUG_BUILD env var is set)

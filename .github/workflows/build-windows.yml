@@ -48,6 +48,10 @@ jobs:
           Write-Host "=== Python Import Audit ==="
           python -c "import sounddevice; import google.genai; import PyQt6; import cv2; import mediapipe; import playwright; import fastapi; import uvicorn; print('All core imports successful')"
           if ($LASTEXITCODE -ne 0) { Write-Host "Import audit failed"; exit 1 }
+          Write-Host ""
+          Write-Host "=== Extended Import Audit ==="
+          python -c "import pyautogui; import pywinauto; import mss; import psutil; import comtypes; import pycaw; import edge_tts; import reportlab; import openpyxl; import pptx; import docx; import discord; import cryptography; import qrcode; import bs4; import send2trash; import youtube_transcript_api; import duckduckgo_search; print('All extended imports successful')"
+          if ($LASTEXITCODE -ne 0) { Write-Host "Extended import audit failed"; exit 1 }
 
       - name: Run tests
         shell: pwsh
@@ -63,10 +67,24 @@ jobs:
           pyinstaller brahma-echo.spec --noconfirm --clean
           if ($LASTEXITCODE -ne 0) {
             Write-Host "PyInstaller build failed"
-            Get-Content build\brahma-echo\warn-brahma-echo.txt -Tail 50
+            if (Test-Path "build\brahma-echo\warn-brahma-echo.txt") {
+              Get-Content build\brahma-echo\warn-brahma-echo.txt -Tail 50
+            }
             exit 1
           }
           Write-Host "=== Build complete ==="
+
+      - name: Build Debug EXE with PyInstaller
+        shell: pwsh
+        run: |
+          Write-Host "=== Building Brahma Echo Debug EXE ==="
+          pyinstaller brahma-echo-debug.spec --noconfirm --clean
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Debug build failed (non-fatal)"
+          } else {
+            Write-Host "=== Debug build complete ==="
+          }
+        continue-on-error: true
 
       - name: Verify EXE exists
         shell: pwsh
@@ -89,7 +107,6 @@ jobs:
           if ($proc.HasExited) {
             $exitCode = $proc.ExitCode
             Write-Host "Process exited early with code: $exitCode"
-            # Check for crash log
             $crashLog = "$env:LOCALAPPDATA\Brahma Echo\logs\crash_log.txt"
             if (Test-Path $crashLog) {
               Write-Host "=== Crash log ==="
@@ -100,7 +117,6 @@ jobs:
               Write-Host "=== Startup log ==="
               Get-Content $startupLog
             }
-            # Non-fatal: some processes exit on headless CI due to no display
             Write-Host "Note: Early exit may be normal in CI (no display/audio). Continuing build."
           } else {
             Write-Host "Process is running — smoke test passed"
@@ -150,115 +166,43 @@ jobs:
             exit 1
           }
 
-      - name: Create portable ZIP
-        shell: pwsh
-        run: |
-          Compress-Archive -Path "dist\BrahmaEcho\*" -DestinationPath "dist\BrahmaEcho-Portable.zip" -Force
-
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: Brahma-Echo-Setup
           path: installer/output/Brahma-Echo-Setup.exe
-          if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
-      - name: Upload portable ZIP artifact
+      - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
           name: BrahmaEcho-Portable
-          path: dist/BrahmaEcho-Portable.zip
-          if-no-files-found: error
+          path: dist/BrahmaEcho/
+          retention-days: 90
+
+      - name: Upload debug build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrahmaEcho-Debug
+          path: dist/BrahmaEchoDebug/
           retention-days: 30
+        if: always()
 
-  release:
-    name: Create GitHub Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download installer
-        uses: actions/download-artifact@v4
-        with:
-          name: Brahma-Echo-Setup
-          path: release-assets
-
-      - name: Download portable ZIP
-        uses: actions/download-artifact@v4
-        with:
-          name: BrahmaEcho-Portable
-          path: release-assets
-
-      - name: List release assets
-        run: ls -la release-assets/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release-assets/Brahma-Echo-Setup.exe
-            release-assets/BrahmaEcho-Portable.zip
-          name: Brahma Echo ${{ github.ref_name }}
-          body: |
-            ## Brahma Echo ${{ github.ref_name }}
-
-            Open-source Windows desktop AI assistant with voice-first automation.
-
-            ### Downloads
-
-            * `Brahma-Echo-Setup.exe` — Full installer (recommended)
-            * `BrahmaEcho-Portable.zip` — Portable, no install needed
-
-            ### System Requirements
-
-            * Windows 10 or Windows 11 (x64)
-            * Internet connection for AI providers
-            * Microphone for voice commands
-
-            ### Installation
-
-            1. Download `Brahma-Echo-Setup.exe`
-            2. Run the installer
-            3. Follow the setup wizard
-            4. Launch Brahma Echo from Start Menu or desktop shortcut
-
-            ### First Run
-
-            * On first launch, Brahma Echo creates config files in `%LOCALAPPDATA%\Brahma Echo\config\`
-            * Open the settings to enter your Gemini API key (required)
-            * Optionally add an OpenRouter API key for fallback
-            * Playwright browsers are installed automatically if needed
-
-            ### Configuration
-
-            Config files are stored per-user at:
-            `%LOCALAPPDATA%\Brahma Echo\config\`
-
-            * `api_keys.json` — Gemini and OpenRouter API keys
-            * `app_settings.json` — App preferences
-            * `discord_bot.json` — Discord bot settings
-
-            ### Troubleshooting
-
-            If the app doesn't start:
-            1. Check the crash log: `%LOCALAPPDATA%\Brahma Echo\logs\crash_log.txt`
-            2. Check the app log: `%LOCALAPPDATA%\Brahma Echo\logs\brahma_echo.log`
-            3. Run with `--debug` flag: `BrahmaEcho.exe --debug`
-            4. Ensure your API keys are configured
-
-            ### Features
-
-            * Voice-first command and desktop automation
-            * Gemini AI with OpenRouter fallback
-            * Screen-aware context and automation
-            * Document, presentation, and report generation
-            * Discord bot and Brahma Connect remote control
-            * Plugin system for extensibility
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          generate_release_notes: true
+      - name: Create GitHub Release on tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Write-Host "=== Creating GitHub Release ==="
+          $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
+          gh release create $tag `
+            --title "Brahma Echo $tag" `
+            --notes "Download Brahma-Echo-Setup.exe to install Brahma Echo on Windows 10/11. See the README for installation instructions." `
+            installer/output/Brahma-Echo-Setup.exe `
+            --repo $env:GITHUB_REPOSITORY
+
+      - name: Clean up build intermediates
+        shell: pwsh
+        run: |
+          Remove-Item -Path "build" -Recurse -Force -ErrorAction SilentlyContinue

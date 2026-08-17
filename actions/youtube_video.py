@@ -2,6 +2,7 @@
 import json
 import re
 import sys
+import os
 import time
 import subprocess
 import shutil
@@ -29,7 +30,10 @@ from config import get_os, is_windows, is_mac, is_linux
 
 def _get_base_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 

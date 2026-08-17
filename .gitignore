@@ -39,7 +39,7 @@ Thumbs.db
 # Build / packaging artifacts
 build/
 dist/
-*.spec
+# *.spec  # spec files are tracked in repo
 *.exe
 *.msi
 *.pkg

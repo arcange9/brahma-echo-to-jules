@@ -1,12 +1,16 @@
 #web_search.py
 import json
 import sys
+import os
 import warnings
 from pathlib import Path
 
 def _get_base_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 

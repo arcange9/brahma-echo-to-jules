@@ -215,7 +215,8 @@ Brahma Echo can be built into a Windows x64 executable and installer using GitHu
 Download the latest release from the [Releases page](https://github.com/arcange9/brahma-echo-to-jules/releases):
 
 - `Brahma-Echo-Setup.exe` — Full installer (recommended)
-- `BrahmaEcho-Portable.zip` — Portable, no install needed
+- `BrahmaEcho-Portable` — Portable, no install needed
+- `BrahmaEcho-Debug` — Console debug build for troubleshooting
 
 ### System Requirements
 
@@ -256,10 +257,21 @@ Open the settings to configure:
 
 ### Playwright
 
-Playwright Chromium browser is installed automatically when first needed. If you prefer to install it manually:
+Brahma Echo uses Playwright for browser automation features. During installation, you can check "Download Playwright Chromium browser" to set it up automatically.
+
+If you skipped it during installation or prefer manual setup:
+
+1. Open PowerShell as administrator
+2. Navigate to the Brahma Echo install directory (typically `C:\Program Files\Brahma Echo\`)
+3. Run: `powershell -ExecutionPolicy Bypass -File playwright_setup.ps1`
+
+Or if you have Python installed:
 ```
-BrahmaEcho.exe --install-playwright
+pip install playwright
+playwright install chromium
 ```
+
+Note: All other Brahma Echo features work without the Playwright browser. Only browser automation requires it.
 
 ### Uninstallation
 
@@ -288,9 +300,12 @@ If Brahma Echo fails to start:
    BrahmaEcho.exe --debug
    ```
 
-4. **Verify API keys** are configured in `%LOCALAPPDATA%\Brahma Echo\config\api_keys.json`
+4. **Use the Debug Build:**
+   Download `BrahmaEchoDebug` from the GitHub Actions artifacts. This version shows a console window with full logging output, making it easier to identify startup issues.
 
-5. **Check Playwright** browsers are installed if you use browser automation features
+5. **Verify API keys** are configured in `%LOCALAPPDATA%\Brahma Echo\config\api_keys.json`
+
+6. **Check Playwright** browsers are installed if you use browser automation features
 
 ### Configuration Files
 
@@ -324,3 +339,10 @@ ISCC installer\brahma_echo.iss
 ```
 
 The executable will be in `dist/BrahmaEcho/` and the installer in `installer/output/`.
+
+To build the debug version (with console output):
+```bash
+pyinstaller brahma-echo-debug.spec --noconfirm --clean
+```
+
+The debug executable will be in `dist/BrahmaEchoDebug/`.

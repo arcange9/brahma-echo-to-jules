@@ -14,7 +14,10 @@ from agent.error_handler import analyze_error, generate_fix, ErrorDecision
 
 def get_base_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
 import threading
 import time
 import uuid
@@ -13,6 +14,13 @@ from cryptography.fernet import Fernet
 
 
 def _base_dir() -> Path:
+    """Resolve base dir compatible with both dev and PyInstaller frozen modes."""
+    if getattr(sys, "frozen", False):
+        # Frozen: use per-user writable data dir
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return Path(local_app_data) / "Brahma Echo"
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 
@@ -33,7 +41,7 @@ def _now_ms() -> int:
 class CredentialVault:
     def __init__(self, key_file: Path = KEY_FILE):
         _ensure_dir()
-        self._key_file = key_file
+        self._key_file = Path(key_file)
         self._fernet = Fernet(self._load_or_create_key())
 
     def _load_or_create_key(self) -> bytes:
@@ -228,99 +236,95 @@ class SmartHomeStorage:
         if room:
             where.append("room = ?")
             params.append(room)
-        where_sql = ("WHERE " + " AND ".join(where)) if where else ""
-        query = f"""
-            SELECT d.*, p.account_label
-            FROM devices d
-            JOIN provider_accounts p ON p.id = d.provider_account_id
-            {where_sql}
-            ORDER BY d.updated_at DESC, d.created_at DESC
-        """
+        clause = f" WHERE {' AND '.join(where)}" if where else ""
         with self._lock, self._connect() as conn:
-            rows = conn.execute(query, params).fetchall()
+            rows = conn.execute(
+                f"SELECT * FROM devices{clause} ORDER BY updated_at DESC",
+                params,
+            ).fetchall()
         result: list[dict[str, Any]] = []
         for row in rows:
-            traits = {}
-            try:
-                traits = json.loads(row["traits_json"]) if row["traits_json"] else {}
-            except Exception:
-                traits = {}
-            result.append(
-                {
-                    "id": row["id"],
-                    "provider_account_id": row["provider_account_id"],
-                    "provider_key": row["provider_key"],
-                    "account_label": row["account_label"],
-                    "external_id": row["external_id"],
-                    "name": row["name"],
-                    "manufacturer": row["manufacturer"],
-                    "room": row["room"],
-                    "device_type": row["device_type"],
-                    "image_key": row["image_key"],
-                    "is_on": bool(row["is_on"]),
-                    "traits": traits,
-                    "created_at": int(row["created_at"]),
-                    "updated_at": int(row["updated_at"]),
-                }
-            )
+            d = dict(row)
+            d["is_on"] = bool(d["is_on"])
+            d["traits"] = json.loads(d.pop("traits_json", "{}") or "{}")
+            result.append(d)
         return result
 
     def get_device(self, device_id: str) -> dict[str, Any] | None:
-        items = self.list_devices()
-        for item in items:
-            if item["id"] == device_id:
-                return item
-        return None
-
-    def update_device(self, device_id: str, *, name: str | None = None, room: str | None = None,
-                      is_on: bool | None = None, traits: dict[str, Any] | None = None) -> None:
-        current = self.get_device(device_id)
-        if not current:
-            return
-        merged_traits = dict(current.get("traits") or {})
-        if traits:
-            merged_traits.update(traits)
-        payload = json.dumps(merged_traits, ensure_ascii=True)
         with self._lock, self._connect() as conn:
-            conn.execute(
-                """
-                UPDATE devices
-                SET name = ?, room = ?, is_on = ?, traits_json = ?, updated_at = ?
-                WHERE id = ?
-                """,
-                (
-                    name or current["name"],
-                    room or current["room"],
-                    1 if (current["is_on"] if is_on is None else bool(is_on)) else 0,
-                    payload,
-                    _now_ms(),
-                    device_id,
-                ),
-            )
+            row = conn.execute("SELECT * FROM devices WHERE id = ?", (str(device_id),)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["is_on"] = bool(d["is_on"])
+        d["traits"] = json.loads(d.pop("traits_json", "{}") or "{}")
+        return d
+
+    def update_device(self, device_id: str, **fields) -> None:
+        allowed = {"name", "room", "is_on", "traits", "manufacturer", "device_type"}
+        updates = {k: v for k, v in fields.items() if k in allowed}
+        if not updates:
+            return
+        set_parts: list[str] = []
+        params: list[Any] = []
+        if "traits" in updates:
+            updates["traits"] = json.dumps(updates["traits"], ensure_ascii=True)
+        if "is_on" in updates:
+            updates["is_on"] = 1 if updates["is_on"] else 0
+        for k, v in updates.items():
+            set_parts.append(f"{k} = ?")
+            params.append(v)
+        set_parts.append("updated_at = ?")
+        params.append(_now_ms())
+        params.append(str(device_id))
+        with self._lock, self._connect() as conn:
+            conn.execute(f"UPDATE devices SET {', '.join(set_parts)} WHERE id = ?", params)
 
     def forget_device(self, device_id: str) -> None:
         with self._lock, self._connect() as conn:
-            conn.execute("DELETE FROM devices WHERE id = ?", (device_id,))
-
-    def log_activity(self, title: str, detail: str) -> None:
-        with self._lock, self._connect() as conn:
-            conn.execute(
-                "INSERT INTO activities(created_at, title, detail) VALUES(?, ?, ?)",
-                (_now_ms(), title, detail),
-            )
+            conn.execute("DELETE FROM devices WHERE id = ?", (str(device_id),))
 
     def recent_activity(self, limit: int = 10) -> list[dict[str, Any]]:
         with self._lock, self._connect() as conn:
             rows = conn.execute(
-                "SELECT created_at, title, detail FROM activities ORDER BY created_at DESC LIMIT ?",
-                (max(1, int(limit)),),
+                "SELECT * FROM activities ORDER BY created_at DESC LIMIT ?",
+                (int(limit),),
             ).fetchall()
-        return [
-            {"created_at": int(row["created_at"]), "title": row["title"], "detail": row["detail"]}
-            for row in rows
-        ]
+        return [dict(row) for row in rows]
+
+    def log_activity(self, title: str, detail: str) -> None:
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                "INSERT INTO activities(created_at, title, detail) VALUES (?, ?, ?)",
+                (_now_ms(), str(title), str(detail)),
+            )
 
     def count_devices(self) -> int:
         with self._lock, self._connect() as conn:
-            row = conn.execute("SELECT COUNT(*) AS c FROM devices").fetchone()
-        return int(row["c"]) if row else 0
+            row = conn.execute("SELECT COUNT(*) as cnt FROM devices").fetchone()
+        return int(row["cnt"])
+
+    def list_scenes(self) -> list[dict[str, Any]]:
+        with self._lock, self._connect() as conn:
+            rows = conn.execute("SELECT * FROM scenes ORDER BY name").fetchall()
+        return [dict(row) for row in rows]
+
+    def save_scene(self, scene_id: str, name: str, config: dict[str, Any]) -> None:
+        stamp = _now_ms()
+        with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT id FROM scenes WHERE id = ?", (scene_id,)).fetchone()
+            payload = json.dumps(config, ensure_ascii=True)
+            if row:
+                conn.execute(
+                    "UPDATE scenes SET name = ?, config_json = ?, updated_at = ? WHERE id = ?",
+                    (name, payload, stamp, scene_id),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO scenes(id, name, config_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                    (scene_id, name, payload, stamp, stamp),
+                )
+
+    def delete_scene(self, scene_id: str) -> None:
+        with self._lock, self._connect() as conn:
+            conn.execute("DELETE FROM scenes WHERE id = ?", (scene_id,))
